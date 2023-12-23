@@ -1,13 +1,19 @@
 from Memory.player import Player
-from Memory.ai_player import AIPlayer
 from random import choice, sample
 import tkinter as tk
 from typing import List
 from pathlib import Path
 from os.path import dirname, join, isdir
 from os import listdir
+import pandas as pd
+import mne
+import matplotlib.pyplot as plt
+import os
+from PIL import Image, ImageTk
+import io
 
 IMAGES_FOLDER = join(Path(dirname(__file__)).parent, 'Images')
+DATA_FOLDER = join(Path(dirname(__file__)).parent, 'eeg_data')
 
 
 def find_all_themes():
@@ -15,7 +21,6 @@ def find_all_themes():
                   if isdir(join(IMAGES_FOLDER, theme))]
     all_themes.sort()
     return all_themes
-
 
 class Game:
 
@@ -30,6 +35,7 @@ class Game:
         self.game_num = 0
         # self.set_one_player_mode()
         self.game_over = False
+        self.image = None
 
         self.DIMENSIONS = [(5, 4), (6, 6)]
         self.game_dim = self.DIMENSIONS[0]
@@ -78,28 +84,30 @@ class Game:
     def set_initial_game_parameters(self):
         x = self.radio_button_choice.get()
         self.game_mode = x
+        #buf = self.draw_demo_plot()
+        #self.open_game_over_frame(buf)
         self.start_new_game()
 
     def set_radio_buttons(self):
-        # self.main_frame = tk.Frame(self.window, height=500, width=500)
-        # self.main_frame.grid(row=0, column=1)
         self.radio_buttons_frame = tk.Frame(self.window, height=500, width=500)
-        self.radio_buttons_frame.grid(row=0, column=0, sticky=tk.W)
+        self.radio_buttons_frame.grid(row=0, column=5)
 
         self.hello = tk.Label(
             self.radio_buttons_frame,
             text='Choose the game mode:',
-            font=("Helvetica", 14)
+            font=("Helvetica", 14),
+            width=25
         )
         self.hello.grid(row=0, column=0, sticky=tk.W)
 
         self.R1 = tk.Radiobutton(
             self.radio_buttons_frame,
-            text="Test mode",
+            text="Demo mode",
             font=("Helvetica", 14),
             command=self.set_initial_game_parameters,
             variable=self.radio_button_choice,
-            value=0
+            value=0,
+            width=25
         )
         self.R1.grid(row=1, column=0, sticky=tk.W)
 
@@ -109,7 +117,8 @@ class Game:
             font=("Helvetica", 14),
             command=self.set_initial_game_parameters,
             variable=self.radio_button_choice,
-            value=1
+            value=1,
+            width=25
         )
         self.R2.grid(row=2, column=0, sticky=tk.W)
 
@@ -117,7 +126,7 @@ class Game:
         if len(self.found_cards) == self.cards_nb:
             if self.game_num == 0:
                 self.game_num = 1
-                self.game_dim = self.DIMENSIONS[1]
+                self.game_dim = self.DIMENSIONS[0]
                 self.cards_nb = self.game_dim[0] * self.game_dim[1]
                 self.theme = self.THEMES[0]
                 self.hidden_card = tk.PhotoImage(
@@ -129,17 +138,75 @@ class Game:
                 self.window.after(3000, self.start_new_game())
             else:
                 self.game_over = True
-                self.open_game_over_window()
+                fig = self.draw_demo_plot()
+                self.window.after(2000, self.open_game_over_frame(fig))
 
-    def open_game_over_window(self):
-        game_over_window = tk.Toplevel(self.window)
-        game_over_window.title("Game Over")
-        game_over_window.geometry("600x600")
+    def draw_plot(self, rec1, rec2, info):
+        raw1 = mne.io.RawArray(rec1, info)
+        raw2 = mne.io.RawArray(rec2, info)
+
+        raw1 = raw1.filter(1, 45, fir_design='firwin', skip_by_annotation='edge')
+        raw2 = raw2.filter(1, 45, fir_design='firwin', skip_by_annotation='edge')
+
+        events1 = mne.make_fixed_length_events(raw1, duration=2.0)
+        events2 = mne.make_fixed_length_events(raw2, duration=2.0)
+
+        epochs1 = mne.Epochs(raw1, events1, tmin=-0.2, tmax=0.5, preload=True)
+        epochs2 = mne.Epochs(raw2, events2, tmin=-0.2, tmax=0.5, preload=True)
+
+        evoked1 = epochs1.average()
+        evoked2 = epochs2.average()
+
+        plot = mne.viz.plot_compare_evokeds(dict(short=evoked1, long=evoked2), legend='upper right', show=False)
+        fig = plt.figure(plot[0])
+
+        buf = io.BytesIO()
+        fig.savefig(buf)
+        buf.seek(0)
+
+        return buf
+
+    def draw_demo_plot(self):
+        ch_names = ['Fp1', 'Fp2', 'Fpz', 'AF7', 'AF3', 'AF4',
+                    'AF8', 'F7']
+        sfreq = 250.0
+        ch_types = ['eeg'] * 8
+        info = mne.create_info(ch_names, sfreq, ch_types)
+
+        rec1 = pd.read_csv('eeg_data/state_1_day_4.csv', delimiter=',', header=None)
+        rec2 = pd.read_csv('eeg_data/state_2_day_4.csv', delimiter=',', header=None)
+
+        fig = self.draw_plot(rec1, rec2, info)
+
+        return fig
+
+        #plt.savefig('eeg_data/demo_plot.png')
+        #pre, ext = os.path.splitext('eeg_data/demo_plot.png')
+        #os.rename('eeg_data/demo_plot.png', pre + '.gif')
+
+    def open_game_over_frame(self, fig):
+        # game_over_window = tk.Toplevel(self.window)
+        # game_over_window.title("Game Over")
+        # game_over_window.geometry("900x700")
+
+        self.main_frame.destroy()
+        self.cards_frame.destroy()
+        self.radio_buttons_frame.destroy()
+        self.main_frame = tk.Frame(self.window, width=900, height=700)
+        self.main_frame.grid(row=0, column=1)
+
         tk.Label(
-            master=game_over_window,
+            master=self.main_frame,
             text='Your epochs difference:',
             font=("Helvetica", 20)
         ).grid(row=0, column=0)
+
+        if self.game_mode == 0:
+            self.image = ImageTk.PhotoImage(Image.open(fig))
+            tk.Label(
+                master=self.main_frame,
+                image=self.image
+            ).grid(row=1, column=0)
 
     # def reset_scores(self) -> None:
     #
@@ -219,9 +286,7 @@ class Game:
         self.turned_cards_nb += 1
         self.turned_cards_ids.append(self.cards_ids[card_id])
         self.turned_card_played.append(card_id)
-        # if self.game_mode == 'Against AI':
-        #    self.player2.remembers_card(card_id=card_id,
-        #                                image=self.cards_ids[card_id])
+
 
     def show(self, item):
         # if item not in self.found_cards and self.current_player.can_play:
