@@ -6,6 +6,7 @@ from Memory.game import Game
 def launch_game() -> None:
     # GUI
     window = tk.Tk()
+
     window.title("Memory game")
 
     memory_game = Game(window)
@@ -21,36 +22,36 @@ def launch_game() -> None:
         command=lambda x=0: memory_game.set_dim_and_start(x)
     )
     submenu.add_command(
-        label='Dim 5x6',
+        label='Dim 6x6',
         command=lambda x=1: memory_game.set_dim_and_start(x)
     )
     jeu.add_command(label='Close', command=window.destroy)
 
-    players_menu = tk.Menu(top, tearoff=False)
-    top.add_cascade(label='Players', menu=players_menu)
-    one_player_menu = tk.Menu(players_menu, tearoff=False)
-    players_menu.add_cascade(label='One player', menu=one_player_menu)
-    one_player_menu.add_command(label='Alone', command=memory_game.play_alone)
-    one_player_menu.add_command(
-        label='Vs Computer',
-        command=memory_game.play_against_ai
-    )
-    players_menu.add_command(
-        label='2 players',
-        command=memory_game.play_against_human
-    )
+    #players_menu = tk.Menu(top, tearoff=False)
+    #op.add_cascade(label='Players', menu=players_menu)
+    #ne_player_menu = tk.Menu(players_menu, tearoff=False)
+    #layers_menu.add_cascade(label='One player', menu=one_player_menu)
+    #ne_player_menu.add_command(label='Alone', command=memory_game.play_alone)
+    #one_player_menu.add_command(
+    #    label='Vs Computer',
+    #    command=memory_game.play_against_ai
+    #)
+    #players_menu.add_command(
+    #    label='2 players',
+    #    command=memory_game.play_against_human
+    #)
 
-    theme_menu = tk.Menu(top, tearoff=False)
-    top.add_cascade(label='Theme', menu=theme_menu)
-    theme_menu.add_command(
-        label='Choose theme',
-        command=memory_game.set_up_theme_frame
-    )
+    #theme_menu = tk.Menu(top, tearoff=False)
+    #top.add_cascade(label='Theme', menu=theme_menu)
+    #theme_menu.add_command(
+    #    label='Choose theme',
+    #    command=memory_game.set_up_theme_frame
+    #)
 
     help_menu = tk.Menu(top, tearoff=False)
-    top.add_cascade(label='Help', menu=help_menu)
+    top.add_cascade(label='How to play?', menu=help_menu)
     help_menu.add_command(label='How to play?', command=print_rules)
-    help_menu.add_command(label='About', command=about)
+    #help_menu.add_command(label='About', command=about)
 
     # Launch GUI
     window.mainloop()

@@ -5,7 +5,7 @@ class Player:
     def __init__(self, name='Player'):
         self.score = 0
         self.name = name
-        self.can_play = False
+        self.can_play = True
 
     def reset_score(self):
         self.score = 0
