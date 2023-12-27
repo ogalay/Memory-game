@@ -2,13 +2,15 @@ Memory Game
 
 Gameplay
 
-3 modes of play
-- Play alone
-- Play against the computer
-- Play against a friend
+2 modes to play
+- Demo mode without openbci headset
+- Real mode with openbci headset
 
 Goal
-The game is played with a deck of 20/30 cards.
+Firstly the game is played with a deck of 20 cards, secondly with a desk of 36 cards.
+In real mode eeg signal is collected for two games separately.
 The cards are laid out in a grid face down.
 The object of the game is to turn over pairs of matching cards.
 The game ends when all cards have been correctly matched.
+After the end of the second game the plot of eeg epochs difference is shown.
+In demo mode the plot is made of synthetic data.

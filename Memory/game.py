@@ -8,9 +8,12 @@ from os import listdir
 import pandas as pd
 import mne
 import matplotlib.pyplot as plt
-import os
 from PIL import Image, ImageTk
 import io
+import time
+import argparse
+import numpy as np
+from brainflow.board_shim import BoardShim, BrainFlowInputParams
 
 IMAGES_FOLDER = join(Path(dirname(__file__)).parent, 'Images')
 DATA_FOLDER = join(Path(dirname(__file__)).parent, 'eeg_data')
@@ -41,7 +44,7 @@ class Game:
         self.game_dim = self.DIMENSIONS[0]
         self.cards_nb = self.game_dim[0] * self.game_dim[1]
 
-        self.theme = self.THEMES[1]
+        self.theme = self.THEMES[0]
 
         self.hidden_card = tk.PhotoImage(
             file=f'{IMAGES_FOLDER}/{self.theme}/carte-0.gif'
@@ -60,6 +63,12 @@ class Game:
         self.set_radio_buttons()
         self.main_frame = tk.Frame(self.window, height=500, width=500)
         self.cards_frame = tk.Frame(self.window)
+        self.parser = None
+        self.args = None
+        self.params = None
+        self.openbci = None
+        self.record_short = None
+        self.record_long = None
         # self.set_up_theme_frame()
 
     def generate_theme_cards_list(self):
@@ -86,6 +95,17 @@ class Game:
         self.game_mode = x
         #buf = self.draw_demo_plot()
         #self.open_game_over_frame(buf)
+        if self.game_mode == 1:
+            self.parser = argparse.ArgumentParser()
+            self.parser.add_argument('--serial-port', type=str,
+                                help='serial port', required=False, default='/dev/ttyUSB0')
+            self.parser.add_argument('--board-id', type=int,
+                                help='board id', required=False, default=0)
+            self.args = self.parser.parse_args()
+            self.params = BrainFlowInputParams()
+            self.params.serial_port = self.args.serial_port
+            self.openbci = BoardShim(self.args.board_id, self.params)
+
         self.start_new_game()
 
     def set_radio_buttons(self):
@@ -126,20 +146,31 @@ class Game:
         if len(self.found_cards) == self.cards_nb:
             if self.game_num == 0:
                 self.game_num = 1
-                self.game_dim = self.DIMENSIONS[0]
+                self.game_dim = self.DIMENSIONS[1]
                 self.cards_nb = self.game_dim[0] * self.game_dim[1]
-                self.theme = self.THEMES[0]
+                self.theme = self.THEMES[1]
                 self.hidden_card = tk.PhotoImage(
                     file=f'{IMAGES_FOLDER}/{self.theme}/carte-0.gif'
                 )
                 self.blank_card = tk.PhotoImage(
                     file=f'{IMAGES_FOLDER}/{self.theme}/blankCard.gif'
                 )
+                if self.game_mode == 1:
+                    self.record_short = self.openbci.get_board_data()
+                    self.openbci.stop_stream()
+                    self.openbci.release_session()
                 self.window.after(3000, self.start_new_game())
             else:
                 self.game_over = True
-                fig = self.draw_demo_plot()
-                self.window.after(2000, self.open_game_over_frame(fig))
+                if self.game_mode == 0:
+                    fig = self.draw_demo_plot()
+                    self.window.after(2000, self.open_game_over_frame(fig))
+                else:
+                    self.record_long = self.openbci.get_board_data()
+                    self.openbci.stop_stream()
+                    self.openbci.release_session()
+                    fig = self.draw_real_plot()
+                    self.window.after(2000, self.open_game_over_frame(fig))
 
     def draw_plot(self, rec1, rec2, info):
         raw1 = mne.io.RawArray(rec1, info)
@@ -183,6 +214,19 @@ class Game:
         #plt.savefig('eeg_data/demo_plot.png')
         #pre, ext = os.path.splitext('eeg_data/demo_plot.png')
         #os.rename('eeg_data/demo_plot.png', pre + '.gif')
+
+    def draw_real_plot(self):
+        ch_names = BoardShim.get_eeg_names(self.args.board_id)
+        sfreq = 250.0
+        ch_types = ['eeg'] * len(ch_names)
+        info = mne.create_info(ch_names, sfreq, ch_types)
+
+        rec1 = pd.DataFrame(self.record_short[:, 1:])
+        rec2 = pd.DataFrame(self.record_long[:, 1:])
+
+        fig = self.draw_plot(rec1, rec2, info)
+
+        return fig
 
     def open_game_over_frame(self, fig):
         # game_over_window = tk.Toplevel(self.window)
@@ -324,6 +368,9 @@ class Game:
         self.cards_ids = self.initiate_game()
         self.reset_game()
         self.set_up_memory_frame()
+        if self.game_mode == 1:
+            self.openbci.prepare_session()
+            self.openbci.start_stream()
 
     def start_theme(self):
         # self.theme = self.THEMES[x]
