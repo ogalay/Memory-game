@@ -30,7 +30,7 @@ class Game:
     def __init__(self, window):
         self.THEMES = find_all_themes()
         self.THEME_CARDS = self.generate_theme_cards_list()
-        self.player = Player('Player')
+        self.player = Player()
         # self.player2 = None
         # self.current_player = self.player1
         self.player_nb = 1
@@ -74,21 +74,6 @@ class Game:
     def generate_theme_cards_list(self):
         return [tk.PhotoImage(file=str(f'{IMAGES_FOLDER}/{theme}/carte-0.gif'))
                 for theme in self.THEMES]
-
-    # def set_initial_game_parameters(self):
-    #    choices = {0: {'mode': 'Alone', 'nb_player': 1},
-    #               1: {'mode': 'Against AI', 'nb_player': 2},
-    #               2: {'mode': 'Against Player', 'nb_player': 2}
-    #               }
-    #    x = self.radio_button_choice.get()
-    #    self.player_nb = 1
-    #    self.game_mode = 'Alone'
-    #    #if self.player_nb == 1:
-    #    #    self.set_one_player_mode()
-    #    #elif self.game_mode == "Against AI":
-    #    #    self.set_ai_mode()
-    #    #else:
-    #    #    self.set_two_players_mode()
 
     def set_initial_game_parameters(self):
         x = self.radio_button_choice.get()
@@ -372,14 +357,14 @@ class Game:
             self.openbci.prepare_session()
             self.openbci.start_stream()
 
-    def start_theme(self):
-        # self.theme = self.THEMES[x]
-        self.hidden_card = tk.PhotoImage(
-            file=f'{IMAGES_FOLDER}/{self.theme}/carte-0.gif')
-        self.blank_card = tk.PhotoImage(
-            file=f'{IMAGES_FOLDER}/{self.theme}/blankCard.gif'
-        )
-        self.start_new_game()
+    #def start_theme(self):
+    #    # self.theme = self.THEMES[x]
+    #    self.hidden_card = tk.PhotoImage(
+    #        file=f'{IMAGES_FOLDER}/{self.theme}/carte-0.gif')
+    #    self.blank_card = tk.PhotoImage(
+    #        file=f'{IMAGES_FOLDER}/{self.theme}/blankCard.gif'
+    #    )
+    #    self.start_new_game()
 
     # def display_players_score(self) -> None:
     #    """ Set up the frame with the names and scores of both players. """
@@ -441,7 +426,7 @@ class Game:
         self.player.increment_score()
         self.lab_score_player.configure(text=str(self.player.score))
 
-    def set_dim_and_start(self, x):
-        self.game_dim = self.DIMENSIONS[x]
-        self.cards_nb = self.game_dim[0] * self.game_dim[1]
-        self.start_new_game()
+    #def set_dim_and_start(self, x):
+    #    self.game_dim = self.DIMENSIONS[x]
+    #    self.cards_nb = self.game_dim[0] * self.game_dim[1]
+    #    self.start_new_game()

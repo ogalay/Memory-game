@@ -1,10 +1,7 @@
-
-
 class Player:
-    """A class to represent a player in a memory game."""
-    def __init__(self, name='Player'):
+
+    def __init__(self):
         self.score = 0
-        self.name = name
         self.can_play = True
 
     def reset_score(self):
