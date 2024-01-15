@@ -83,7 +83,7 @@ class Game:
         if self.game_mode == 1:
             self.parser = argparse.ArgumentParser()
             self.parser.add_argument('--serial-port', type=str,
-                                help='serial port', required=False, default='/dev/ttyUSB0')
+                                help='serial port', required=False, default='COM4')
             self.parser.add_argument('--board-id', type=int,
                                 help='board id', required=False, default=0)
             self.args = self.parser.parse_args()
@@ -155,7 +155,7 @@ class Game:
                     self.openbci.stop_stream()
                     self.openbci.release_session()
                     fig = self.draw_real_plot()
-                    self.window.after(2000, self.open_game_over_frame(fig))
+                    self.window.after(5000, self.open_game_over_frame(fig))
 
     def draw_plot(self, rec1, rec2, info):
         raw1 = mne.io.RawArray(rec1, info)
@@ -173,7 +173,7 @@ class Game:
         evoked1 = epochs1.average()
         evoked2 = epochs2.average()
 
-        plot = mne.viz.plot_compare_evokeds(dict(short=evoked1, long=evoked2), legend='upper right', show=False)
+        plot = mne.viz.plot_compare_evokeds(dict(short=evoked1, long=evoked2), legend='upper right', show=True)
         fig = plt.figure(plot[0])
 
         buf = io.BytesIO()
@@ -201,15 +201,17 @@ class Game:
         #os.rename('eeg_data/demo_plot.png', pre + '.gif')
 
     def draw_real_plot(self):
-        ch_names = BoardShim.get_eeg_names(self.args.board_id)
+        ch_names = ['F7', 'C4', 'F8', 'O2', 'O1', 'C3']
         sfreq = 250.0
         ch_types = ['eeg'] * len(ch_names)
         info = mne.create_info(ch_names, sfreq, ch_types)
 
-        rec1 = pd.DataFrame(self.record_short[:, 1:])
-        rec2 = pd.DataFrame(self.record_long[:, 1:])
+        rec1 = self.record_short[[2, 3, 4, 6, 7, 8]]
+        print(rec1)
+        rec2 = self.record_long[[2, 3, 4, 6, 7, 8]]
 
         fig = self.draw_plot(rec1, rec2, info)
+        print('Trying to do plot')
 
         return fig
 
@@ -230,12 +232,12 @@ class Game:
             font=("Helvetica", 20)
         ).grid(row=0, column=0)
 
-        if self.game_mode == 0:
-            self.image = ImageTk.PhotoImage(Image.open(fig))
-            tk.Label(
-                master=self.main_frame,
-                image=self.image
-            ).grid(row=1, column=0)
+
+        self.image = ImageTk.PhotoImage(Image.open(fig))
+        tk.Label(
+            master=self.main_frame,
+            image=self.image
+        ).grid(row=1, column=0)
 
     # def reset_scores(self) -> None:
     #
@@ -273,6 +275,7 @@ class Game:
 
         memory_cards = self.load_cards() * 2
         return sample(memory_cards, k=len(memory_cards))
+
 
     # def set_up_theme_frame(self):
     #    self.cards_frame.destroy()
